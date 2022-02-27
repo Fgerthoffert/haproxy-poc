@@ -1,0 +1,55 @@
+version: '3.8'
+
+networks:
+  mynetwork:
+    name: mynetwork
+
+services:
+  app_1:
+    image: nginxdemos/hello
+    hostname: app_1.dev.sandbox.jahia.com
+    networks:
+      - mynetwork
+
+  app_2:
+    image: nginxdemos/hello
+    hostname: app_2.dev.sandbox.jahia.com
+    networks:
+      - mynetwork
+
+  app_3:
+    image: nginxdemos/hello
+    hostname: app_3.dev.sandbox.jahia.com
+    networks:
+      - mynetwork
+
+  # ssh_1:
+  #   image: lscr.io/linuxserver/openssh-server
+  #   hostname: ssh_1.dev.sandbox.jahia.com
+  #   environment:
+  #     - PASSWORD_ACCESS=true
+  #     - USER_PASSWORD=password
+  #     - USER_NAME=ssh_1
+  #   networks:
+  #     - mynetwork
+
+  # ssh_2:
+  #   image: lscr.io/linuxserver/openssh-server
+  #   hostname: ssh_2.dev.sandbox.jahia.com
+  #   environment:
+  #     - PASSWORD_ACCESS=true
+  #     - USER_PASSWORD=password
+  #     - USER_NAME=ssh_2
+  #   networks:
+  #     - mynetwork
+
+  haproxy:
+    image: haproxytech/haproxy-alpine:2.4
+    hostname: haproxy.dev.sandbox.jahia.com
+    ports:
+      - 80:80
+      - 2222:2222
+    volumes:
+      - './:/usr/local/etc/haproxy:ro'
+    networks:
+      -  mynetwork
