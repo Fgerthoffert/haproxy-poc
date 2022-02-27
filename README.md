@@ -70,12 +70,12 @@ Like this:
 
 The traditional solution to accessing resources running in Docker is to use port binding, doing something like this:
 
-```
-HAProxy:80 -> localhost:80
-APP_1:80 -> localhost:81
-APP_2:80 -> localhost:82
-APP_3:80 -> localhost:83
-```
+| Container | Inside docker network | Outside docker network |
+| --- | --- | --- |
+| haproxy | haproxy:80 | localhost:80 |
+| app_1 | app_1:80 | localhost:81 |
+| app_2 | app_2:80 | localhost:82 |
+| app_3 | app_3:80 | localhost:83 |
 
 Our `docker-compose.yml` file would look like this:
 
@@ -129,7 +129,6 @@ This way, all resources can be addressed directly, but:
 The easiest (and best) solution to tackle this challenge would be to find a way to get each of these containers exposed to the network as if they were their own service, with their own IP and ports.
 
 Although routing into the Docker network, does not seem possible, Docker supports [mavclan networks](https://docs.docker.com/network/macvlan/), which allows a container's NIC to be directly exposed on the Host' network and get its own IP address. Sadly, this feature is not available on Docker desktop. 
-
 
 ### First baby step
 
@@ -186,6 +185,15 @@ services:
 
 In this modified `docker-compose.yml` file, the `haproxy` container can access `app_1` using `http://app_1.dev.sandbox.jahia.com:80`, but from the host, we still need to use `http://localhost:81` to access `app_1`.
 
+With this configuration, we get the following host addressing table:
+
+| Container | Inside docker network | Outside docker network |
+| --- | --- | --- |
+| haproxy | haproxy.dev.sandbox.jahia.com:80 | localhost:80 |
+| app_1 | app_1.dev.sandbox.jahia.com:80 | localhost:81 |
+| app_2 | app_2.dev.sandbox.jahia.com:80 | localhost:82 |
+| app_3 | app_3.dev.sandbox.jahia.com:80 | localhost:83 |
+
 ### DNS to the rescue
 
 From there we can do some trickery, what about creating a DNS zone, with a wildcard `A` record always pointing to `127.0.0.1`.
@@ -203,6 +211,13 @@ From that point on:
  - Outside the Docker network, resources can also be accessed using their hostname, which will redirect the request to the loopback address.
 
 The `haproxy` container can still access `app_1` using `http://app_1.dev.sandbox.jahia.com:80`, and from the host, we can begin using `http://app_1.dev.sandbox.jahia.com:81` to access `app_1`.
+
+| Container | Inside docker network | Outside docker network |
+| --- | --- | --- |
+| haproxy | haproxy.dev.sandbox.jahia.com:80 | haproxy.dev.sandbox.jahia.com:80 |
+| app_1 | app_1.dev.sandbox.jahia.com:80 | app_1.dev.sandbox.jahia.com:81 |
+| app_2 | app_2.dev.sandbox.jahia.com:80 | app_2.dev.sandbox.jahia.com:82 |
+| app_3 | app_3.dev.sandbox.jahia.com:80 | app_3.dev.sandbox.jahia.com:83 |
 
 Still a different port, but at least, the same hostname.
 
@@ -304,21 +319,21 @@ At the beginning of this article, we had to rely on port binding for each contai
 
 Going from:
 
-| Inside Docker | Outside docker |
-| --- | --- |
-| HAProxy:80 | localhost:80 |
-| APP_1:80 | localhost:81 |
-| APP_2:80 | localhost:82 |
-| APP_3:80 | localhost:83|
+| Container | Inside docker network | Outside docker network |
+| --- | --- | --- |
+| haproxy | haproxy:80 | localhost:80 |
+| app_1 | app_1:80 | localhost:81 |
+| app_2 | app_2:80 | localhost:82 |
+| app_3 | app_3:80 | localhost:83 |
 
 To:
 
-| Inside Docker | Outside docker |
-| --- | --- |
-| haproxy.dev.sandbox.jahia.com:80 | haproxy.dev.sandbox.jahia.com:80 |
-| app_1.dev.sandbox.jahia.com:80 | app_1.dev.sandbox.jahia.com:80 |
-| app_2.dev.sandbox.jahia.com:80 | app_2.dev.sandbox.jahia.com:80 |
-| app_3.dev.sandbox.jahia.com:80 | app_3.dev.sandbox.jahia.com:80|
+| Container | Inside docker network | Outside docker network |
+| --- | --- | --- |
+| haproxy | haproxy.dev.sandbox.jahia.com:80 | haproxy.dev.sandbox.jahia.com:80 |
+| app_1 | app_1.dev.sandbox.jahia.com:80 | app_1.dev.sandbox.jahia.com:80 |
+| app_2 | app_2.dev.sandbox.jahia.com:80 | app_2.dev.sandbox.jahia.com:80 |
+| app_3 | app_3.dev.sandbox.jahia.com:80 | app_3.dev.sandbox.jahia.com:80 |
 
 This is not an ideal solution, it definitely adds complexity and introduce a new layer/breaking point. Is that worth it?
 
